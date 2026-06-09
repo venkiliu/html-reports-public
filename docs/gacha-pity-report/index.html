@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="pitch-deck-vc">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>抽卡保底机制与付费体验设计汇报</title>
+<link rel="stylesheet" href="assets/fonts.css">
+<link rel="stylesheet" href="assets/base.css">
+<link rel="stylesheet" id="theme-link" href="assets/themes/pitch-deck-vc.css">
+<link rel="stylesheet" href="assets/animations/animations.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  .big-num{font-size:92px;line-height:1;font-weight:900;letter-spacing:-.06em}
+  .mega-num{font-size:168px;line-height:.92;font-weight:950;letter-spacing:-.08em}
+  .mini{font-size:14px;color:var(--text-3)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--border);background:var(--surface-2);font-size:13px;color:var(--text-2)}
+  .formula{font-family:var(--font-mono);font-size:26px;line-height:1.45;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:22px 26px}
+  .excel-wrap{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.16)}
+  .excel-popover{position:absolute;left:96px;right:96px;bottom:68px;z-index:8;background:#fbfbf7;color:#141414;box-shadow:0 28px 100px rgba(0,0,0,.42)}
+  .excel-title{padding:12px 16px;font-size:16px;font-weight:800;color:var(--text-2);border-bottom:1px solid var(--border);background:rgba(255,255,255,.04)}
+  .excel-calc{width:100%;border-collapse:collapse;font-size:14px;line-height:1.25}
+  .excel-calc th,.excel-calc td{border:1px solid var(--border);padding:8px 10px;text-align:left;vertical-align:top}
+  .excel-calc th{color:var(--text-2);background:rgba(255,255,255,.06);font-weight:800}
+  .excel-calc td:nth-child(2){font-family:var(--font-mono);color:var(--accent)}
+  .excel-calc td:nth-child(3){font-family:var(--font-mono);font-weight:900;color:var(--good)}
+  .excel-assumptions{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:10px 12px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.035)}
+  .excel-assumptions span{border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:13px;background:rgba(255,255,255,.04)}
+  .step-row{opacity:0;transform:translateY(18px);transition:opacity .35s ease,transform .35s ease}
+  .step-row.is-visible{opacity:1;transform:none}
+  .step-item{opacity:0;transform:translateY(14px);transition:opacity .32s ease,transform .32s ease}
+  .step-item.is-visible{opacity:1;transform:none}
+  .step-hint{padding:8px 14px;font-size:13px;color:var(--text-3);border-top:1px solid var(--border)}
+  .excel-sheet{position:relative;height:360px;background:#fbfbf7;color:#141414;overflow:hidden;font-family:var(--font-mono);background-image:linear-gradient(#d8d8d0 1px,transparent 1px),linear-gradient(90deg,#d8d8d0 1px,transparent 1px);background-size:72px 24px,72px 24px}
+	  .excel-sheet.tall{height:430px}
+	  .excel-sheet.pity-lesson{height:552px}
+  .sheet-cell{position:absolute;padding:5px 8px;border:1px solid #111;background:rgba(255,255,255,.86);font-size:14px;line-height:1.25;box-sizing:border-box;white-space:normal}
+  .sheet-title{font-size:21px;font-weight:900;background:rgba(255,255,255,.92)}
+  .sheet-muted{color:#777;font-weight:700}
+  .sheet-yellow{background:#fff200;font-weight:900}
+  .sheet-orange{background:#ffd9b3;font-weight:900}
+  .sheet-green{color:#00a88a;font-weight:950}
+  .sheet-grey{color:#666;font-weight:800}
+  .sheet-active::after{content:"";position:absolute;inset:-3px;border:3px solid #17864b;pointer-events:none}
+  .axis-card canvas{max-height:270px}
+  .risk{border-left:4px solid var(--warn)}
+  .good{border-left:4px solid var(--good)}
+  .bad{border-left:4px solid var(--bad)}
+  .flow{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:stretch}
+  .flow .card{padding:20px 18px;text-align:center}
+  .arrow{font-size:28px;color:var(--accent);align-self:center;text-align:center}
+  @media (max-width: 900px){.slide{padding:48px}.mega-num{font-size:112px}.big-num{font-size:68px}.flow{grid-template-columns:1fr}.arrow{display:none}}
+</style>
+</head>
+<body data-themes="pitch-deck-vc,corporate-clean,aurora,minimal-white,tokyo-night,catppuccin-mocha" data-theme-base="assets/themes/">
+<div class="deck">
+
+  <section class="slide" data-title="封面">
+    <div class="deck-header"><span class="eyebrow">Game Economy Report</span><span class="eyebrow">抽奖系统</span></div>
+    <p class="kicker">实习生培训</p>
+    <h1 class="h1 anim-rise-in" data-anim="rise-in">抽奖的保底有什么用，<br><span class="gradient-text">为什么大多数抽奖都有保底？</span></h1>
+    <p class="lede">核心结论：保底不是“提高中奖率”这么简单，而是把随机抽奖改造成一个可预期、可追逐、可被演出放大的阶段性目标系统。</p>
+    <div class="row wrap mt-l" style="gap:10px">
+      <span class="tag">降低极端非酋</span><span class="tag">制造阶段目标</span><span class="tag">增强付费冲刺</span>
+    </div>
+    <div class="deck-footer"><span class="dim2">Boss briefing deck</span><span class="slide-number" data-current="1" data-total="9"></span></div>
+    <div class="notes">
+【内容解释】开场只给一句结论：保底的好处是什么。三个tag：保护非酋体验、增加参与率、提升arpu值。
+【心理学原理】损失规避：人在面临高风险和确定性的回报时，往往趋利避害。所以有确定性的保底奖励时，用户的参与率会上升，赌狗是少数人。
+【心理学原理】目标梯度效应 ：越接近目标，行为强度越高。保底的本质就是给随机事件人为安装一个"终点线"。沉沉成本：玩家已经投入了抽数，离保底又不远了，这时候放弃会被感知为浪费之前的投入，继续抽的转化率会大幅提升。保底进度条的设计就是为了强化这个心理效应，让玩家更清晰地感知到"我已经投入了这么多，再投入一点就能拿到"。
+【老板可能问】Q1: "保底不就是变相打折吗？"——不是，打折是降价，保底是改变事件结构，把无终点随机变成有终点目标，玩家愿意付出的总金额反而更高。Q2: "这套理论有数据支撑吗？"——后续每页都有对应数据图（P2 期望分布、P4 递增曲线、P6 波浪分布）。
+    </div>
+  </section>
+
+  <section class="slide" data-title="无保底的问题">
+    <p class="kicker">Problem</p>
+    <h2 class="h2">无保底抽奖的核心问题：期望好看，但人群体验不稳定</h2>
+    <div class="grid g2 mt-l" style="align-items:start">
+      <div class="card axis-card">
+        <h4>1% 基础概率下，100 抽仍未中奖</h4>
+        <div class="mega-num gradient-text">36.6%</div>
+        <p class="dim">数学上每 100 抽期望约 1 个大奖，但仍有约三分之一玩家 100 抽无大奖收获。</p>
+      </div>
+      <div class="card axis-card">
+        <h4>未中奖概率随抽数下降，但尾部很长</h4>
+        <canvas id="noPityChart"></canvas>
+      </div>
+    </div>
+    <div class="excel-wrap excel-popover step-item">
+      <div class="excel-title">动态 Excel 计算过程：100 抽为什么还有 36.6% 的人没有大奖</div>
+      <div class="excel-sheet">
+        <div class="sheet-cell sheet-active" style="left:144px;top:24px;width:72px;height:24px"></div>
+        <div class="sheet-cell step-item" style="left:360px;top:24px;width:108px">大奖权重<br>1.00</div>
+        <div class="sheet-cell step-item" style="left:468px;top:24px;width:108px">小奖概率<br>99.00</div>
+        <div class="sheet-cell step-item" style="left:576px;top:24px;width:90px">总权重<br>100</div>
+        <div class="sheet-cell step-item" style="left:666px;top:24px;width:90px">大奖概率<br>0.01</div>
+        <div class="sheet-cell step-item" style="left:756px;top:24px;width:160px">抽到大奖期望次数<br>100</div>
+        <div class="sheet-cell sheet-title" style="left:24px;top:92px;width:520px">从投放算概率：反过来计算抽不到大奖的概率</div>
+        <div class="sheet-cell step-item" style="left:24px;top:126px;width:450px">问题 1：50 次都抽不到大奖的概率是多少？</div>
+        <div class="sheet-cell step-item" style="left:24px;top:160px;width:470px">问题 2：100 次都抽不到大奖的概率是多少？</div>
+        <div class="sheet-cell step-item" style="left:24px;top:204px;width:420px">先反过来问：抽 1 次抽不到大奖的概率是多少？</div>
+        <div class="sheet-cell step-item" style="left:444px;top:204px;width:180px">= 99%</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:24px;top:248px;width:310px">50 次不中 = 99% ^ 50</div>
+        <div class="sheet-cell step-item sheet-orange" style="left:334px;top:248px;width:100px">60.5%</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:464px;top:248px;width:320px">100 次不中 = 99% ^ 100</div>
+        <div class="sheet-cell step-item sheet-orange" style="left:784px;top:248px;width:100px">36.6%</div>
+        <div class="sheet-cell step-item sheet-grey" style="left:24px;top:292px;width:470px">1 - 99%^100 = 63.4%</div>
+        <div class="sheet-cell step-item" style="left:494px;top:292px;width:390px">抽 100 次，有 63.4% 的人至少中 1 个大奖。</div>
+        <div class="sheet-cell step-item sheet-title" style="left:494px;top:326px;width:470px">反过来：还有 36.6% 的人 100 抽没有大奖</div>
+      </div>
+      <div class="step-hint">第一次点击弹出 Excel；继续点击 / 空格：逐块显示假设与计算过程</div>
+    </div>
+    <div class="deck-footer"><span class="dim2">without pity</span><span class="slide-number" data-current="2" data-total="9"></span></div>
+    <div class="notes">
+【内容解释】举个例子：大奖的概率权重是1，如果小奖的概率权重99，那么抽奖期望是每平均100抽出1个大奖。但是实际上如果我们去计算抽不到的概率，1次抽不到大奖的概率是99%，那么100次，就是0.99开100次方，用二项分布算：P(100 抽没有大奖) = 0.99^100 ≈ 36.6%，意味着 100 个付费 100 抽的玩家里，约 37 人没有大奖。这部分人的体验会特别差，也是退款、投诉、流失的核心来源，远比少数欧皇带来的口碑收益更具破坏性。
+【心理学原理】① 损失厌恶（丹尼尔·卡内曼，阿莫斯·特沃斯基》）：同等金额下，损失带来的痛苦约为收益快感的 2-2.5 倍，37% 的"全损"玩家产生的负面声量会压过欧皇的正面声量。② 可得性启发（阿莫斯·特沃斯基和丹尼尔·卡内曼提出）：负面极端案例（"我 300 抽没出"）在社群更易被记住和传播，扭曲新玩家对系统的概率认知。
+【老板可能问】Q1: "为什么不直接把概率提到 2% 就行？"——提概率会同步抬高欧皇尾部，长期产出膨胀，且仍有 13.3% 玩家 100 抽不出，问题没解决。Q2: "37% 是不是夸张？"——纯数学结果，可现场用计算器验证 0.99^100。Q3: "那少数非酋忍忍不行吗？"——社群时代一个差评帖能影响千人决策，CAC 损失远高于补偿成本。
+【劲舞团落地】尤其是劲舞团社交属性强，玩家之间会交流、房间公屏、CP 频道传播负面体验的速度比单机抽卡游戏更快；非酋玩家如果在房间里抱怨"抽 x 次没出xx"，很可能会直接劝退正在围观的潜在付费用户。
+    </div>
+  </section>
+
+  <section class="slide" data-title="固定保底与重置">
+    <p class="kicker">Model 01</p>
+    <h2 class="h2">100 抽固定保底：保障体验，必须做“中大奖后重置”</h2>
+    <div class="grid g3 mt-l">
+      <div class="card card-accent"><h4>无保底</h4><div class="big-num">1.00</div><p class="dim">每 100 抽期望约 1 个大奖；100 抽至少中 1 个大奖的概率是 63.4%。</p></div>
+      <div class="card good"><h4>重置性保底</h4><div class="big-num gradient-text">1.58</div><p class="dim">平均约 63.4 抽拿 1 个大奖；100 ÷ 63.4 ≈ 1.58 个大奖。</p></div>
+      <div class="card bad"><h4>不重置保底</h4><div class="big-num">1.99</div><p class="dim">自然中奖照算，每 100 抽又额外送 1 个大奖，产出膨胀过高。</p></div>
+    </div>
+    <div class="excel-wrap excel-popover step-item">
+      <div class="excel-title">动态 Excel 计算过程：有 100 抽保底时，平均多少抽拿到 1 个大奖</div>
+      <div class="excel-sheet pity-lesson">
+        <div class="sheet-cell sheet-active" style="left:144px;top:24px;width:72px;height:24px"></div>
+        <div class="sheet-cell step-item" style="left:360px;top:24px;width:108px">大奖权重<br>1.00</div>
+        <div class="sheet-cell step-item" style="left:468px;top:24px;width:108px">小奖概率<br>99.00</div>
+        <div class="sheet-cell step-item" style="left:576px;top:24px;width:90px">总权重<br>100</div>
+        <div class="sheet-cell step-item" style="left:666px;top:24px;width:90px">大奖概率<br>0.01</div>
+        <div class="sheet-cell step-item" style="left:756px;top:24px;width:160px">抽到大奖期望次数<br>100</div>
+        <div class="sheet-cell sheet-title" style="left:24px;top:76px;width:640px">如果加了 100 抽保底：先算“平均多少抽出 1 个大奖”</div>
+        <div class="sheet-cell step-item" style="left:24px;top:116px;width:430px">问题 1：没保底，100 抽能抽到大奖的概率是多少？</div>
+        <div class="sheet-cell step-item" style="left:24px;top:150px;width:430px">问题 2：没保底，平均多少抽可以拿 1 个大奖？</div>
+        <div class="sheet-cell step-item" style="left:24px;top:184px;width:430px">问题 3：加了 100 抽保底，平均多少抽可以出 1 个大奖？</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:494px;top:116px;width:250px">= 1 - 99% ^ 100</div>
+        <div class="sheet-cell step-item sheet-orange" style="left:744px;top:116px;width:100px">63.4%</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:494px;top:150px;width:250px">= 1 / 1%</div>
+        <div class="sheet-cell step-item sheet-orange" style="left:744px;top:150px;width:100px">100 抽</div>
+        <div class="sheet-cell step-item sheet-grey" style="left:24px;top:226px;width:884px">加保底后：平均抽数不是 100，而是把“每一种结果贡献了几抽”加起来。</div>
+
+        <div class="sheet-cell step-item sheet-title" style="left:24px;top:268px;width:384px">极简 Excel：50% / 2 抽保底</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:24px;top:306px;width:128px">情况</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:152px;top:306px;width:64px">概率</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:216px;top:306px;width:72px">抽数</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:288px;top:306px;width:120px">发生贡献</div>
+        <div class="sheet-cell step-item" style="left:24px;top:338px;width:128px;height:40px">第 1 抽就中</div>
+        <div class="sheet-cell step-item" style="left:152px;top:338px;width:64px;height:40px">50%</div>
+        <div class="sheet-cell step-item" style="left:216px;top:338px;width:72px;height:40px">1 次</div>
+        <div class="sheet-cell step-item" style="left:288px;top:338px;width:120px;height:40px">第 1 抽必发生<br>= 1</div>
+        <div class="sheet-cell step-item" style="left:24px;top:378px;width:128px;height:44px">没中，第 2 抽保底</div>
+        <div class="sheet-cell step-item" style="left:152px;top:378px;width:64px;height:44px">50%</div>
+        <div class="sheet-cell step-item" style="left:216px;top:378px;width:72px;height:44px">2 次</div>
+        <div class="sheet-cell step-item" style="left:288px;top:378px;width:120px;height:44px">第 2 抽发生概率<br>= 50% = 0.5</div>
+        <div class="sheet-cell step-item sheet-orange" style="left:24px;top:434px;width:384px">平均抽数 = 1 + 0.5 = 1.5 次</div>
+        <div class="sheet-cell step-item sheet-grey" style="left:24px;top:478px;width:384px">第 1 抽一定会发生，所以贡献 1；第 2 抽只有第 1 抽没中才会发生，概率是 50%，所以贡献 0.5。</div>
+
+        <div class="sheet-cell step-item sheet-title" style="left:432px;top:268px;width:452px">套回 1% 概率、100 抽保底</div>
+        <div class="sheet-cell step-item" style="left:432px;top:308px;width:280px">第 1 抽发生概率：1</div>
+        <div class="sheet-cell step-item" style="left:432px;top:338px;width:280px">第 2 抽发生概率：0.99</div>
+        <div class="sheet-cell step-item" style="left:432px;top:368px;width:280px">第 3 抽发生概率：0.99²</div>
+        <div class="sheet-cell step-item" style="left:432px;top:398px;width:330px">第 100 抽发生概率：0.99^99</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:432px;top:434px;width:452px">平均抽数 = 1 + 0.99 + 0.99² + ... + 0.99^99</div>
+        <div class="sheet-cell step-item sheet-grey" style="left:432px;top:466px;width:452px">等比数列求和：= (1 - 0.99^100) / (1 - 0.99)</div>
+        <div class="sheet-cell step-item sheet-orange" style="left:432px;top:492px;width:452px">平均抽数 = 63.397 抽 ≈ 63.4 抽出 1 个大奖</div>
+        <div class="sheet-cell step-item sheet-yellow" style="left:432px;top:524px;width:452px">100 抽期望大奖数 = 100 ÷ 63.397 ≈ 1.58 个</div>
+      </div>
+      <div class="step-hint">第一次点击弹出 Excel；继续点击 / 空格：逐块显示完整计算流程</div>
+    </div>
+    <div class="deck-footer"><span class="dim2">reset pity</span><span class="slide-number" data-current="3" data-total="9"></span></div>
+    <div class="notes">
+【内容解释】这一页要先解释 1.58 是怎么算出来的。先用极简例子建立直觉：假设中奖概率是 50%，最多 2 抽保底。可能发生两种情况：第 1 抽就中，概率 50%，实际抽 1 次；第 1 抽没中、第 2 抽保底中，概率 50%，实际抽 2 次。平均抽数 = 50% × 1 + 50% × 2 = 1.5 次。换一种更直观的算法：第 1 抽一定会发生，贡献 1；第 2 抽只有第 1 抽没中才会发生，概率 50%，贡献 0.5；所以平均抽数 = 1 + 0.5 = 1.5 次。这里已经出现了加法，因为平均值要把每种情况的贡献加起来。套回 1% 大奖概率、100 抽保底：无保底时，100 抽至少中 1 个大奖的概率是 1 - 0.99^100 = 63.4%，还有 36.6% 的人 100 抽没有大奖；有 100 抽重置保底时，我们算的不是中奖概率，而是“平均拿 1 个大奖要花多少抽”：第 1 抽一定发生，记 1；第 2 抽只有第 1 抽没中才发生，记 0.99；第 3 抽要前 2 抽都没中，记 0.99²；一直加到第 100 抽，形成等比数列 1 + 0.99 + 0.99² + ... + 0.99^99，用等比数列求和公式 (1 - 0.99^100) / (1 - 0.99) = 63.4 抽。也就是说，平均 63.4 抽拿 1 个大奖，所以 100 抽 ÷ 63.4 抽 ≈ 1.58 个大奖。不重置保底（自然中奖照算 + 每 100 抽必送 1 个大奖）长期产出 1.99 个大奖，比无保底翻倍，资源严重通胀；重置性保底（中奖即清零）既兜底又控量。规则一句话：抽中清零，未抽 +1，达上限必出且清零。
+【心理学原理】① 目标梯度效应（美国心理学家‌克拉克·赫尔‌（Clark L. Hull）于1932年提出》）：越接近目标，行为强度越高，保底进度条让玩家在 70-90 抽段加速付费。② 沉没成本谬误（阿克斯（Hal R. Arkes）和布卢默（Catherine Blumer）于1985年在《组织行为与人类决策过程》）：已投入抽数让玩家不愿"半途放弃"，保底进度可视化强化此效应。③ 确定性效应（‌确定效应（Certainty Effect）‌ 是丹尼尔·卡尼曼（Daniel Kahneman）和阿莫斯·特沃斯基（Amos Tversky）于1979年在提出‌前景理论‌（Prospect Theory）时的核心概念之一）：玩家对"100 抽必出"的确定性赋予的价值远高于其期望值。
+【老板可能问】Q1: "1.577 和 1.99 差 0.4 张，有那么严重？"——按 100 抽 ≈ 600 元算，每个保底周期多送 0.4 张大奖，如果活动半个月开1次，半年累计稀释稀有度，二级市场/和稀缺性的价值会崩盘。Q2: "为什么不直接做不重置，玩家更爽？"——短期爽，3 个月后顶级装扮人手一件，付费动力消失，参考早期某些页游崩盘案例。Q3: "重置会不会让玩家觉得被坑？"——前台只展示"已抽 X/100"，不展示"中奖即清零"机制细节，玩家感知到的是"保底兑现"而非"被重置"。
+【劲舞团落地】婚纱、限定情侣装等稀缺性道具必须重置保底，否则一个月后房间里满地相同婚纱，稀缺性归零，游戏系统的情感价值和付费动力同步崩塌；
+    </div>
+  </section>
+
+  <section class="slide" data-title="概率递增保底">
+    <div class="grid g2" style="align-items:center">
+      <div>
+        <p class="kicker">Model 02 · Soft Pity</p>
+        <h2 class="h2">概率递增保底：<br>让玩家在“硬保底前”获得惊喜</h2>
+        <p class="lede">前期维持低概率，接近保底区间后逐步提高中奖率。玩家预期是 90 抽，但大量玩家会在 77–84 抽附近出货，于是产生“比保底更早中”的惊喜感。</p>
+        <div class="formula mt-m">示例：p(i)=0.006，当 i&lt;74；<br>p(i)=min(1, p(i-1)+0.06)，当 i≥74。</div>
+      </div>
+      <div class="card axis-card">
+        <h4>递增保底下的累计获得分布</h4>
+        <canvas id="softPityChart"></canvas>
+        <p class="mini">示意：77 抽左右约半数获得，84 抽时绝大多数获得，90 抽为硬保底。</p>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">soft pity</span><span class="slide-number" data-current="4" data-total="9"></span></div>
+    <div class="notes">
+      <strong>① 内容解释：</strong>硬保底是 90 抽必出，是"合同"；递增保底是从第 74 抽开始概率每抽 +6%，让大部分玩家实际在 77–84 抽出货，是"合同里塞了惊喜"。玩家保留了"我可能提前中"的希望，又有 90 抽的安全感兜底。<br><br>
+      <strong>② 心理学原理：</strong>核心是 斯纳金箱的小白鼠实验——不可预测的奖励比固定奖励更能驱动持续行为，赌博机就是典型应用。其次是 Reid（1986）和 Clark 等（2009 Neuron）研究的 <strong>near-miss effect 近似奖励效应</strong>：当玩家在 78、80、82 抽连续未出但能感觉"快了"，大脑奖赏系统激活程度接近真实中奖，反而更想继续。再叠加 Langer（1975）的<strong>掌控错觉</strong>：玩家会觉得"我选的时机对"。<br><br>
+      <strong>③ 老板可能问：</strong>Q1"为什么不直接降到 60 抽硬保底？"——硬降低保底位会让大 R 直接算清成本，付费天花板下移；递增保底维持 90 上限但实际产出更早，既控成本又给惊喜。Q2"曲线参数怎么定？"——0.6%→6% 递增是参考主流二游（原神 5★约 0.6%/74 抽起递增）的成熟数值，可按劲舞团 ARPU 微调。Q3"玩家会不会算出曲线？"——会，但只要不在前台明示，社群讨论反而是免费传播（"我 79 抽出了"）。<br><br>
+      <strong>④ 劲舞团落地：</strong>建议前台只公示"最多 90 抽必得"，递增曲线不公开。 社群运营引导玩家晒"我 78 抽就出了"，制造"系统比想象中友好"的口碑。
+    </div>
+  </section>
+
+  <section class="slide" data-title="递增保底带来的玩家感受">
+    <p class="kicker">Player Feelings</p>
+    <h2 class="h2">递增保底带来的 4 个关键感受</h2>
+    <div class="grid g4 mt-l anim-stagger-list" data-anim-target>
+      <div class="card good"><h4>① 避免极端负面体验</h4><p class="dim">照顾非酋，避免“别人 10 抽出，我 100 抽不出”的强烈挫败感。</p></div>
+      <div class="card card-accent"><h4>② 有目标</h4><p class="dim">递增保底抽数天然是阶段目标：0→30→50→70→90，每一段都能做进度反馈。</p></div>
+      <div class="card risk"><h4>③ 沉没成本</h4><p class="dim">已经抽到 70/90 时，放弃会被感知为浪费，补抽转化更强。</p></div>
+      <div class="card card-accent"><h4>④ 有惊喜</h4><p class="dim">递增保底让玩家在达到硬保底前提前获得，形成“我运气不错”的正反馈。</p></div>
+    </div>
+    <p class="mini mt-m">注：玩家的感受是不能被平均的。期望值好看，不代表每个玩家的实际体验都好。</p>
+    <div class="deck-footer"><span class="dim2">feelings</span><span class="slide-number" data-current="5" data-total="9"></span></div>
+    <div class="notes">
+      <strong>① 内容解释：</strong>这一页把递增保底翻译成玩家心理的四个关键感受。递增保底不是单纯保护玩家，而是把"继续抽"包装成理性的选择：我已经接近目标了、我不想浪费进度、我再补一点就能拿到。这个逻辑比"单次抽奖概率很高"更能拉付费。<br><br>
+      <strong>② 心理学原理：</strong>四个感受分别对应四个学理锚点。① 避免极端负面体验来自 Güth、Schmittberger &amp; Schwarze（1982）的<strong>最后通牒博弈</strong>——人对"不公平结果"的厌恶强于对收益的追求，非酋叙事会摧毁整个池子的口碑。② 有目标来自 Hull（1932）和 Kivetz、Urminsky &amp; Zheng（2006 JMR）的<strong>目标梯度效应</strong>——离目标越近努力越强。③ 沉没成本来自 Arkes &amp; Blumer（1985 OBHDP《The Psychology of Sunk Cost》）——已投入资源会扭曲后续决策。④ 有惊喜来自 Thaler（1985 Marketing Science）的<strong>心理账户</strong>与<strong>交易效用</strong>——"提前出货"被记为意外收益，情绪权重远高于同等金额的常规收益。<br><br>
+      <strong>③ 老板可能问：</strong>Q1"这四个感受哪个最值钱？"——③ 沉没成本直接拉付费转化（70 抽时补票率最高）；① 避免极端体验决定留存与口碑（防止流失与差评）；两者一短一长都不能砍。Q2"为什么不平均期望值给所有人？"——玩家感受不能被平均，1 个 300 抽非酋的负面传播能抵消 10 个普通玩家的正面。Q3"递增保底会不会被骂诱导消费？"——只要硬保底承诺真实兑现、概率公示合规，监管侧（中国版号 + 苹果 App Store）都接受；关键是不要在 UI 上做"差一点就中"的虚假诱导。<br><br>
+      <strong>④ 劲舞团落地：</strong>① 体现在 90 抽硬保底公示 + 客服话术"最多 90 抽必得"。② 体现在抽卡页顶部进度条 0/90，每抽一次进度+1 带音效。③ 体现在 70 抽后弹出"还差 20 抽必得"提示 + 限时补充券礼包。④ 体现在 77-84 抽出货时全屏金光 + 自动生成"我 XX 抽就出了！"分享卡片，引导发到房间公屏与社群。
+    </div>
+  </section>
+
+  <section class="slide" data-title="保底人数分布">
+    <p class="kicker">Distribution</p>
+    <h2 class="h2">真实付费人群会形成“波浪形”分布</h2>
+    <div class="grid g2 mt-l">
+      <div class="card axis-card">
+        <h4>100 抽一轮保底：人数在保底点突然抬升</h4>
+        <canvas id="waveChart"></canvas>
+      </div>
+      <div class="stack">
+        <div class="card card-accent"><h4>为什么是波浪？</h4><p class="dim">每轮开始人数高，过程逐步流失；越接近保底，继续付费的人越少；到保底点，因为奖励确定获得，人数和消费出现集中释放。</p></div>
+        <div class="card risk"><h4>设计难点</h4><p class="dim">如果 0→100 之间没有过渡目标，玩家会觉得路太长，不愿意从 0 开始冲刺。</p></div>
+        <div class="card good"><h4>解决方向</h4><p class="dim">增加阶段性过渡目标，给少量小额奖励承接中段流失；对抽奖次数上千的玩家，提供 50 连、100 连抽入口，让他们更快到达关键节点。</p></div>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">wave distribution</span><span class="slide-number" data-current="6" data-total="9"></span></div>
+    <div class="notes">
+      <strong>① 内容解释：</strong>付费人数沿抽数轴呈"波浪"而非平滑下降——每轮开头人数高、中段流失、临近保底点又集中释放。原因是保底点是最强的决策锚，但 0→100 中间如果完全空白，玩家会觉得路太长；同时抽奖次数一多，重复点击、重复动画、重复结算会让刺激性快速减弱。因此解决方向分两层：中段增加阶段性过渡目标，用少量小额奖励承接流失；高频玩家则缩短操作链路，让他们更快到达关键节点。<br><br>
+      <strong>② 心理学原理：</strong>保底点形成<strong>锚定效应</strong>（Tversky &amp; Kahneman, 1974, Science《Judgment under Uncertainty: Heuristics and Biases》）——玩家用"还差多少到保底"来评估剩余成本，而不是用绝对金额。中段流失对应<strong>跨期折现 / 双曲贴现</strong>（Ainslie 1975; Laibson 1997 QJE）——远期奖励被严重打折，玩家不愿为 100 抽后的奖励持续投入。抽奖次数多以后，重复体验会带来<strong>习惯化</strong>：同一刺激反复出现，注意力和兴奋感都会下降。因此快捷连抽不是削弱抽卡，而是减少低价值重复，把刺激峰值留给关键结果。<br><br>
+      <strong>③ 老板可能问：</strong>Q1"为什么不直接把保底拉到 50 抽，让曲线更平？"——保底越短，单抽心理价值越低，付费天花板会被压垮；应该用阶段性过渡目标承接中段，而不是直接砍短付费深度。Q2"100 连抽会不会太激进？"——它不是给所有玩家的默认入口，而是给抽奖次数上千的高频玩家降低重复疲劳；QQ 炫舞已经做过类似的 100 连抽入口，说明在高频抽奖场景里，批量抽取是成熟做法。Q3"怎么知道这些设计有效？"——阶段奖励看 30-70 抽续充率，快捷连抽看高频玩家停留时长、跳出率与续充率，目标是让玩家少消耗在重复操作上，多停留在结果确认和继续付费决策上。<br><br>
+      <strong>④ 劲舞团落地：</strong>锚定→UI 永远显示"距离保底还剩 X 抽"而不是"已抽 Y 抽"。阶段目标→在 30/50/70 抽设置过渡节点，给少量小额奖励或进度反馈，避免玩家觉得中段空跑。操作效率→保留单抽和 10 连抽，对累计抽奖次数上千的玩家开放 50 连抽、100 连抽入口，抽奖结果用列表快速结算，稀有结果再单独突出展示。刺激衰减→允许玩家跳过重复动画，把演出强度集中给出货、接近保底、达到硬保底三个节点。波浪形数据→上线后按 10 抽分桶看付费人数曲线，如果 40-60 抽出现深谷，先判断是阶段目标不足还是操作耗时过长，再决定补奖励或开放快捷连抽。
+    </div>
+  </section>
+
+  <section class="slide" data-title="抽卡魅力">
+    <div class="grid g2" style="align-items:center">
+      <div>
+        <p class="kicker">Why Gacha Works</p>
+        <h2 class="h2">抽卡的魅力不只是奖励，<br>而是<span class="gradient-text">可控冒险</span></h2>
+        <p class="lede">抽卡给玩家一个低门槛、高反馈、结果快速揭晓的决策场景：我投入一点成本，马上看到命运变化。</p>
+        <div class="grid g2 mt-m">
+          <div class="card"><h4>以小博大</h4><p class="dim">小额单抽有机会获得高价值大奖。</p></div>
+          <div class="card"><h4>掌控错觉</h4><p class="dim">点击和停顿，都让玩家感觉自己参与了结果。</p></div>
+          <div class="card"><h4>差一点就赢</h4><p class="dim">接近保底、稀有演出、连续未中，强化“下次该中了”的错觉。</p></div>
+          <div class="card"><h4>稳定心流</h4><p class="dim">重复操作、快速反馈、可预期规则，形成失神专注。</p></div>
+        </div>
+      </div>
+      <div class="card card-accent">
+        <p class="kicker">理论依据</p>
+        <h3>《运气的诱饵》</h3>
+        <p class="lede">拉斯维加斯赌博机沉迷者追求的往往不是真金白银，而是两种精神满足：<strong>掌控感</strong>与<strong>稳定性</strong>。</p>
+        <div class="divider mt-m mb-m"></div>
+        <p class="dim">赌博机的吸引力在于：规则清楚、操作简单、反馈迅速，只需选择“是 / 否”，结果马上揭晓。对应到抽奖，就是一次点击带来一次命运变化；保底提供稳定性，演出提供冒险感。</p>
+      </div>
+    </div>
+    <div class="deck-footer"><span class="dim2">gacha appeal</span><span class="slide-number" data-current="7" data-total="9"></span></div>
+    <div class="notes">
+      <strong>① 内容解释：</strong>抽卡的真正吸引力不是"中大奖"，而是一个低门槛、高反馈、结果立即揭晓的<strong>可控冒险</strong>场景：玩家投入很小一点成本，马上看到命运变化。四张小卡——以小博大、掌控错觉、差一点就赢、稳定心流——分别对应价值预期、参与感、近失驱动、专注沉浸四个维度。表达上避开"赌博"二字，定位为"游戏内可控冒险体验"。<br><br>
+      <strong>② 心理学原理：</strong>主锚点引用 Natasha Dow Schüll《Addiction by Design: Machine Gambling in Las Vegas》（2012, Princeton University Press，中译《运气的诱饵》）——赌博机沉迷者追求的不是金钱，而是"the zone"：一种规则清楚、反馈即时、决策简单（是/否）带来的<strong>掌控感与稳定性</strong>。"掌控错觉"对应 Ellen Langer《The Illusion of Control》（1975, JPSP）——当人能做出选择动作（点击和停顿）时，会高估自己对随机结果的影响力。"差一点就赢"对应 near-miss 效应（Reid 1986; Clark et al. 2009 Neuron），会让未中奖结果被感知成"快中了"。同时叠加<strong>赌徒谬误</strong>：玩家连续多次没中后，容易误以为下一次中奖概率更高，从而更愿意继续投入。"稳定心流"对应 Csikszentmihalyi《Flow: The Psychology of Optimal Experience》（1990, Harper &amp; Row）——清晰目标、即时反馈、技能与挑战平衡时进入失神专注状态，抽卡的快节奏循环正好命中。<br><br>
+      <strong>③ 老板可能问：</strong>Q1"这页会不会被解读成我们在做赌博？"——刻意区分：赌博的核心是货币赔付与零和，抽卡的产出是<strong>非货币、不可提现的虚拟外观与社交资产</strong>，且有硬保底封顶损失，定性是娱乐消费而非博彩。Q2"掌控错觉听起来像在骗玩家？"——掌控感本身是中性体验设计，电影按钮、游戏 QTE 都在用；只要保底真实存在、概率公示透明，就是体验设计而非欺诈。Q3"《运气的诱饵》是讲沉迷的，引用合适吗？"——我们引用的是它对"为什么人会被这种交互结构吸引"的观察，而不是它的成瘾机制；同时提醒我们要主动设防（冷静期、消费提示），见后续风险页。<br><br>
+      <strong>④ 劲舞团落地：</strong>掌控感→抽前可选"祈愿道具"，保留明确的玩家决策动作。稳定性→保底进度条常驻、概率公示一键可查。心流→十连节奏控制在 8-12 秒，音乐节拍与抽卡节奏对齐（呼应劲舞团音游基因，是我们独有优势）。社交放大→中奖外观立刻可穿戴进房、房间公屏自动飘屏、个人主页"运气墙"展示历史大奖，让一次抽卡价值在社交场景里被反复消费。风险对冲→在玩家单日抽数达到阈值时弹出"今天玩得开心吗？要不要去跳两首歌？"软提示，主动塑造健康形象。
+    </div>
+  </section>
+
+  <section class="slide" data-title="抽卡演出结构">
+    <p class="kicker">Reveal Design</p>
+    <h2 class="h2">为什么抽卡必须分阶段、做演出？</h2>
+    <div class="flow mt-l">
+      <div class="card card-accent"><h4>① 投入</h4><p class="dim">单抽/十连/道具选择，建立“我做了决定”。</p></div>
+      <div class="card"><h4>② 启动</h4><p class="dim">按钮、音效、镜头推进，制造仪式感。</p></div>
+      <div class="card"><h4>③ 预告</h4><p class="dim">光效颜色、节奏变化，先告诉玩家“可能有货”。</p></div>
+      <div class="card"><h4>④ 揭晓</h4><p class="dim">稀有度分层演出，大奖要有峰值释放。</p></div>
+      <div class="card good"><h4>⑤ 分享</h4><p class="dim">称号、截图、公屏、房间展示，转化为玩家自传播。</p></div>
+    </div>
+    <div class="grid g3 mt-l">
+      <div class="card"><h4>即时反馈</h4><p class="dim">视听强度必须和稀有度挂钩。</p></div>
+      <div class="card"><h4>正向强化</h4><p class="dim">强化获得，弱化失败；就算没抽到大奖，也有小奖安慰，并增加保底进度。</p></div>
+      <div class="card"><h4>意外惊喜</h4><p class="dim">过程阶段先降低预期，结果突然翻出大奖，制造情绪反转。</p></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">reveal design</span><span class="slide-number" data-current="8" data-total="9"></span></div>
+    <div class="notes">
+      <strong>① 内容解释：</strong>抽卡结果在服务器侧早已决定，但<strong>演出决定玩家怎么"感受"这个结果</strong>。把一次随机事件拆成五段——投入、启动、预告、揭晓、分享——把瞬时随机数变成一条 8-12 秒的情绪曲线：期待→怀疑→确认→释放→传播。三条原则：即时反馈（视听强度匹配稀有度）、正向强化（就算没抽到大奖，也有小奖安慰，并增加保底进度）、意外惊喜（过程阶段先降低预期，结果突然翻出大奖，制造反转）。<br><br>
+      <strong>② 心理学原理：</strong>核心锚点是 <strong>Kahneman 峰终定律（Peak-End Rule）</strong>，源自 Kahneman, Fredrickson, Schreiber &amp; Redelmeier (1993, Psychological Science)《When More Pain Is Preferred to Less》以及 Kahneman《Thinking, Fast and Slow》(2011) ——人对一段体验的回忆只取决于"峰值"和"结尾"两个时刻，过程长度几乎不影响。所以大奖揭晓必须做出明确峰值（金光、镜头、BGM 切换），结尾必须给玩家可带走的东西（外观、称号、分享卡）。第二锚点 <strong>Skinner 间歇强化复用</strong>（《Schedules of Reinforcement》, Ferster &amp; Skinner 1957）——演出本身就是强化物，节奏化的视听反馈把每一抽都变成一次小型强化事件。第三锚点 <strong>Berlyne 唤醒理论</strong>（Daniel Berlyne《Conflict, Arousal, and Curiosity》1960, McGraw-Hill）——预告阶段刻意制造不确定性来抬升唤醒水平，揭晓时释放，形成情绪落差。第四锚点社会传播：<strong>Cialdini 社会认同</strong>（《Influence》1984）——分享环节把个人事件转成群体可见信号，触发他人模仿。<br><br>
+      <strong>③ 老板可能问：</strong>Q1"演出是不是在骗玩家？反正结果都定了。"——结果定了不等于体验定了；电影结局也是定的，不影响观众体验。我们没改变概率，只是让<strong>已经发生的好运被充分感知</strong>，这是体验设计而非欺诈。Q2"演出会不会拖慢节奏让玩家烦？"——必须做"可跳过"，但默认全演出；十连控制 8-12 秒，单抽 2-3 秒，跳过后保留结果卡。这点呼应第 7 页心流——节奏失控就出戏。Q3"为什么没中大奖也要给小奖？"——空手会让玩家把这次抽卡记成"纯亏"，触发损失厌恶（呼应 P1）；小奖安慰 + 保底进度增加，可以把"没中大奖"重新框定为"有收获、离目标更近"，是峰终定律里"结尾不能太差"的实操。Q4"五阶段会不会太重，开发成本高？"——投入/启动/分享靠现有 UI 即可，重点投资在③预告④揭晓的差异化光效与音效，这两段是峰值所在，ROI 最高。<br><br>
+      <strong>④ 劲舞团落地：</strong>① 投入→保留单抽/十连选择 + 可选祈愿道具（接 P7 掌控错觉）。② 启动→沿用劲舞团音游基因，按钮按下时播放 1 拍鼓点，镜头推进 0.5 秒。③ 预告→三档光效（白/紫/金）对应稀有度档位，金光预告概率刻意略高于实际金奖率，制造 near-miss（接 P4）。④ 揭晓→限定外观必须有独立 BGM 段落 + 全屏粒子 + 角色试穿动画，这是峰值，不能省。⑤ 分享→中奖立即进入"试穿房间"，一键飘屏到所在房间公屏 + 自动生成竖版分享卡（带房间号回流入口）+ 写入个人主页"运气墙"。没中大奖→给小奖安慰，并明确增加保底进度，让玩家感受到"这次没有空掉，而是离目标更近了"。可跳过设置→长按跳过、设置项里有"始终跳过普通抽卡演出"，尊重老玩家。监控指标→抽卡后 60 秒内的房间公屏分享率、试穿房停留时长，作为演出 ROI 验证口径。
+    </div>
+  </section>
+
+  <section class="slide" data-title="结论与风险">
+    <p class="kicker">Decision</p>
+    <h2 class="h2">结论：保底负责“安心”，演出负责“上头”，展示负责“付费放大”</h2>
+    <div class="grid g2 mt-l">
+      <div class="card good"><h3>核心计算</h3><ul class="dim"><li>精确计算大奖投放期望，明确每轮活动理论产出。</li><li>严格计算投产比，把开发人力、投放资源和收入增量放在同一张表里看。</li><li>清晰判断每次抽奖活动的效能，避免只看流水不看成本。</li><li>绝不能白白浪费开发人力，活动复杂度必须服务收入增长。</li></ul></div>
+      <div class="card risk"><h3>风险边界</h3><ul class="dim"><li>避免前台过度强调“赌博式刺激”。</li><li>概率、保底规则、道具价值要合规透明，规则表述要清晰。</li><li>控制稀有奖励投放节奏，避免短期收入换长期贬值。</li><li>如果投放期望和投产比算不清，就不能贸然加大活动投入。</li></ul></div>
+    </div>
+    <div class="deck-footer"><span class="dim2">summary</span><span class="slide-number" data-current="9" data-total="9"></span></div>
+    <div class="notes">
+      <strong>① 内容解释：</strong>全案收口为三件事各司其职：<strong>保底</strong>解决"<em>敢不敢抽</em>"——把最坏情况封顶（硬保底+中奖重置），消除"投入无底洞"的恐惧；<strong>演出</strong>解决"<em>抽的时候爽不爽</em>"——五阶段情绪曲线把随机结果放大成可记忆的峰值；<strong>展示与社交</strong>解决"<em>抽完以后值不值</em>"——运气墙、房间公屏分享让付费价值在他人眼中持续兑现。三者缺一：只有保底没演出=冷冰冰的概率机器；只有演出没保底=玩家被反复挫败后流失；有保底有演出但无社交=复购乏力。最终能不能做，不只看机制是否完整，还要看核心计算：精确计算投放期望，严格计算投产比，清晰判断每次抽奖活动的效能，绝不能白白浪费开发人力。<br><br>
+      <strong>② 心理学原理：</strong>收口锚点 <strong>Cialdini 社会认同（Social Proof）</strong>，源自 Robert Cialdini《Influence: The Psychology of Persuasion》(1984, William Morrow)——人在不确定情境中会以他人行为作为决策依据，所以分享/排行榜/运气墙不是装饰，是付费放大器。第二锚点 <strong>Tversky &amp; Kahneman 框架效应（Framing Effect）</strong>，源自 Tversky &amp; Kahneman (1981) "The Framing of Decisions and the Psychology of Choice"（Science 211: 453-458）——同一事实用不同语言描述会改变决策："抽卡"vs"幸运收集"激活的心理账户完全不同，话术合规化本身就是降低监管与舆情风险的设计。第三锚点呼应 <strong>Schüll《Addiction by Design》(2012)</strong> 的伦理边界——主动设防（冷静期、消费提示）让产品落在"娱乐消费"而非"问题赌博"侧，是长期主义的护城河。第四锚点转向经营判断：抽奖不是单纯做氛围，而是一次资源投放模型，必须用投放期望、转化率、ARPU 增量和开发成本共同验证 ROI。<br><br>
+      <strong>③ 老板可能问：</strong>Q1"三件事里如果只能做一件，先做哪个？"——先做保底。保底是信任地基，没有它演出再炫也只是短期冲动；有了保底，玩家才敢进入第二、第三次抽卡循环，演出和社交的 ROI 才成立。Q2"风险边界会不会让产品变保守、收入打折？"——恰恰相反。合规透明是<em>降低监管与舆情风险</em>的护栏，劲舞团 IP 资产经不起一次"诱导赌博"的舆情；同时收集/舞台叙事比赌博叙事的<em>受众更宽</em>（女性玩家、低龄回流玩家），盘子更大。Q3"我们怎么证明这套方案落地后真的有效？"——必须精确计算投放期望，严格计算投产比，清晰知道每次抽奖活动的效能。指标不只看流水，还要看开发人力、投放资源、付费转化率、ARPU 增量和复购。Q4"为什么反复强调开发人力？"——抽奖活动不是只改一个按钮，它会消耗策划、前端、后端、美术、动效、测试、运营和投放资源；如果核心计算不清楚，就可能复杂度上去了，收入没增长，等于白白浪费开发人力。<br><br>
+      <strong>④ 劲舞团落地：</strong>① <strong>立项即同步法务/合规</strong>：概率公示文案、抽卡规则页、未成年人防沉迷文案模版与产品同步评审。② <strong>话术词典</strong>统一全产品："抽卡→幸运祈愿/星愿召唤"、"保底→心愿守护"、"概率→获得机会"、"未中奖→进度累积"——同一份词典分发给市场、客服、运营。③ <strong>活动 ROI 表</strong>：上线前计算大奖投放期望、单用户期望消耗、保底触发率、开发人力成本、投放资源成本和目标流水增量；上线后按实际付费转化率、ARPU 增量、复购率回填验证。④ <strong>风险监控仪表盘</strong>：日均抽数 P95、单用户单日付费 P99、连续抽卡时长 P95，超阈值自动触发软提示"去跳两首歌"（接 P7 心流锚点）。⑤ <strong>分阶段上线</strong>：先上保底+概率公示（建立信任）→ 2 周后上演出五阶段（拉付费） → 4 周后上运气墙+房间分享（拉社交回流），每阶段独立看数据归因。最终一句话：<strong>保底建信任、演出造峰值、社交放大价值，但前提是精确计算投放期望，严格计算投产比，清晰判断每次抽奖活动的效能，绝不能白白浪费开发人力。</strong>
+    </div>
+  </section>
+
+</div>
+<script src="assets/runtime.js"></script>
+<script>
+function makeChart(id, config){
+  const el = document.getElementById(id);
+  if(!el || !window.Chart) return;
+  return new Chart(el, config);
+}
+const gridColor = 'rgba(120,120,140,.18)';
+const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-2') || '#666';
+const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent') || '#3b6cff';
+
+const xs100 = Array.from({length:100},(_,i)=>i+1);
+const noWin = xs100.map(i=>Math.pow(.99,i)*100);
+makeChart('noPityChart', {
+  type:'line',
+  data:{labels:xs100.filter((_,i)=>i%5===0),datasets:[{label:'仍未中奖概率',data:noWin.filter((_,i)=>i%5===0),borderColor:accent,backgroundColor:'rgba(59,108,255,.12)',fill:true,tension:.35,pointRadius:0}]},
+  options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:textColor}},y:{min:0,max:100,ticks:{callback:v=>v+'%',color:textColor},grid:{color:gridColor}}}}
+});
+
+let p=.006, survival=1;
+const cumulative=[];
+for(let i=1;i<=90;i++){
+  if(i<74) p=.006; else p=Math.min(1,p+.06);
+  survival *= (1-p);
+  cumulative.push((1-survival)*100);
+}
+makeChart('softPityChart', {
+  type:'line',
+  data:{labels:Array.from({length:90},(_,i)=>i+1),datasets:[{label:'累计获得率',data:cumulative,borderColor:accent,backgroundColor:'rgba(122,92,255,.15)',fill:true,tension:.25,pointRadius:0}]},
+  options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:10,color:textColor}},y:{min:0,max:100,ticks:{callback:v=>v+'%',color:textColor},grid:{color:gridColor}}}}
+});
+
+const bins = ['0-10','10-20','20-30','30-40','40-50','50-60','60-70','70-80','80-90','90-100','100-110','110-120','120-130','130-140','140-150','150-160','160-170','170-180','180-190','190-200','200-210','210-220','220-230','230-240','240-250','250-260','260-270','270-280','280-290','290-300','300-310','310-320','320-330','330-340','340-350','350-360','360-370','370-380','380-390','390-400'];
+const wave = [100,72,56,43,32,24,18,14,10,58,40,31,24,18,13,10,7,45,31,23,17,13,9,7,5,38,26,19,14,10,7,5,4,31,21,15,11,8,6,4];
+makeChart('waveChart', {
+  type:'line',
+  data:{labels:bins,datasets:[{label:'人数/消费集中度（示意）',data:wave,borderColor:accent,backgroundColor:'rgba(255,92,138,.13)',fill:true,tension:.2,pointRadius:0}]},
+  options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxRotation:70,minRotation:70,color:textColor}},y:{beginAtZero:true,ticks:{color:textColor},grid:{color:gridColor}}}}
+});
+
+function showNextExcelStep() {
+  const activeSlide = document.querySelector('.slide.is-active');
+  if (!activeSlide) return false;
+  const nextStep = activeSlide.querySelector('.step-row:not(.is-visible), .step-item:not(.is-visible)');
+  if (!nextStep) return false;
+  nextStep.classList.add('is-visible');
+  return true;
+}
+
+function resetExcelSteps(slide) {
+  slide.querySelectorAll('.step-row').forEach(row => row.classList.remove('is-visible'));
+  slide.querySelectorAll('.step-item').forEach(item => item.classList.remove('is-visible'));
+}
+
+document.addEventListener('click', (event) => {
+  if (event.target.closest('a,button')) return;
+  if (showNextExcelStep()) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
+
+document.addEventListener('keydown', (event) => {
+  if (![' ', 'Enter'].includes(event.key)) return;
+  if (showNextExcelStep()) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
+
+const excelObserver = new MutationObserver((mutations) => {
+  mutations.forEach((mutation) => {
+    if (mutation.attributeName !== 'class') return;
+    const slide = mutation.target;
+    if (!slide.classList.contains('slide') || slide.classList.contains('is-active')) return;
+    resetExcelSteps(slide);
+  });
+});
+
+document.querySelectorAll('.slide').forEach(slide => {
+  excelObserver.observe(slide, { attributes: true });
+  resetExcelSteps(slide);
+});
+</script>
+</body>
+</html>

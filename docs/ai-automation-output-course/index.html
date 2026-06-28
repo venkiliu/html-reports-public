@@ -1,0 +1,1705 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 自动化产出课：API、Harness 与 Codex</title>
+  <style>
+    :root {
+      --ink: #221b16;
+      --muted: #665c53;
+      --paper: #fffaf1;
+      --cream: #f6ead8;
+      --curry: #d99323;
+      --curry-dark: #8b5412;
+      --tomato: #c94935;
+      --leaf: #24785d;
+      --steel: #334155;
+      --line: rgba(34, 27, 22, 0.14);
+      --white: #fff;
+      --shadow: 0 18px 50px rgba(43, 28, 13, 0.13);
+      --radius: 8px;
+      --max: 1120px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      overflow-x: hidden;
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--paper);
+      font-family: "PingFang SC", "Microsoft YaHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.68;
+      overflow-x: hidden;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    .mobile-only {
+      display: none;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(34, 27, 22, 0.88);
+      color: #fffaf1;
+      backdrop-filter: blur(14px);
+    }
+
+    .topbar-inner {
+      width: min(var(--max), calc(100vw - 32px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      font-weight: 800;
+      white-space: nowrap;
+      letter-spacing: 0;
+    }
+
+    .nav {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      overflow-x: auto;
+      font-size: 14px;
+      color: rgba(255, 250, 241, 0.86);
+    }
+
+    .nav a {
+      white-space: nowrap;
+    }
+
+    .edit-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+
+    .edit-controls button {
+      min-height: 32px;
+      border: 1px solid rgba(255, 250, 241, 0.28);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 241, 0.1);
+      color: #fffaf1;
+      cursor: pointer;
+      font: inherit;
+      font-size: 13px;
+      font-weight: 800;
+      padding: 0 10px;
+    }
+
+    .edit-controls button:hover {
+      background: rgba(255, 250, 241, 0.18);
+    }
+
+    body.editing [contenteditable="true"] {
+      outline: 1px dashed rgba(217, 147, 35, 0.85);
+      outline-offset: 3px;
+      background: rgba(255, 217, 154, 0.12);
+      cursor: text;
+    }
+
+    .hero {
+      min-height: min(720px, 76vh);
+      display: grid;
+      align-items: end;
+      position: relative;
+      overflow: hidden;
+      color: #fffaf1;
+      background:
+        linear-gradient(90deg, rgba(22, 15, 10, 0.82), rgba(22, 15, 10, 0.50) 45%, rgba(22, 15, 10, 0.22)),
+        url("assets/dr-curry-curry.png") center 40% / cover no-repeat;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      inset: auto 0 0;
+      height: 120px;
+      background: linear-gradient(180deg, rgba(255, 250, 241, 0), var(--paper));
+      pointer-events: none;
+    }
+
+    .hero-inner {
+      position: relative;
+      z-index: 1;
+      width: min(var(--max), calc(100vw - 32px));
+      margin: 0 auto;
+      padding: 76px 0 112px;
+    }
+
+    .eyebrow {
+      margin: 0 0 14px;
+      color: #ffd99a;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    h1 {
+      margin: 0;
+      max-width: 760px;
+      font-size: 76px;
+      line-height: 1.04;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .hero-sub {
+      max-width: 760px;
+      margin: 20px 0 0;
+      color: rgba(255, 250, 241, 0.9);
+      font-size: 22px;
+      overflow-wrap: anywhere;
+    }
+
+    .hero-points {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      max-width: 880px;
+      margin-top: 34px;
+      min-width: 0;
+    }
+
+    .hero-points[data-remove-on-export] {
+      display: none;
+    }
+
+    .section-hidden[data-remove-on-export] {
+      display: none;
+    }
+
+    .hero-point {
+      min-height: 112px;
+      min-width: 0;
+      padding: 16px;
+      border: 1px solid rgba(255, 250, 241, 0.24);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 241, 0.12);
+      backdrop-filter: blur(10px);
+    }
+
+    .hero-point strong {
+      display: block;
+      margin-bottom: 6px;
+      color: #fff;
+      font-size: 17px;
+    }
+
+    .hero-point span {
+      color: rgba(255, 250, 241, 0.82);
+      font-size: 14px;
+      overflow-wrap: anywhere;
+    }
+
+    .hero-point,
+    .compare-panel,
+    .arch-image,
+    .layer,
+    .pipe-step,
+    .problem,
+    .shot,
+    .command {
+      transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+    }
+
+    .hero-point:hover,
+    .compare-panel:hover,
+    .layer:hover,
+    .pipe-step:hover,
+    .problem:hover,
+    .shot:hover,
+    .command:hover {
+      transform: translateY(-2px);
+      border-color: rgba(217, 147, 35, 0.42);
+    }
+
+    .band {
+      padding: 72px 0;
+    }
+
+    .band.alt {
+      background: #fff3df;
+    }
+
+    .band.dark {
+      background: #231b15;
+      color: #fffaf1;
+    }
+
+    .wrap {
+      width: min(var(--max), calc(100vw - 32px));
+      margin: 0 auto;
+    }
+
+    .band > .wrap {
+      position: relative;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: minmax(0, 0.92fr) minmax(280px, 0.62fr);
+      gap: 40px;
+      align-items: end;
+      margin-bottom: 28px;
+    }
+
+    .section-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 10px;
+      color: var(--curry-dark);
+      font-size: 14px;
+      font-weight: 900;
+    }
+
+    .section-kicker::before {
+      content: "";
+      width: 28px;
+      height: 3px;
+      border-radius: 999px;
+      background: currentColor;
+    }
+
+    .dark .section-kicker {
+      color: #ffd99a;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 46px;
+      line-height: 1.14;
+      letter-spacing: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .lead {
+      margin: 0;
+      color: var(--muted);
+      font-size: 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .dark .lead {
+      color: rgba(255, 250, 241, 0.76);
+    }
+
+    .grid {
+      display: grid;
+      gap: 16px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .grid.three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.four {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card {
+      min-width: 0;
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: var(--shadow);
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--curry), var(--leaf));
+      opacity: 0.8;
+    }
+
+    .dark .card {
+      border-color: rgba(255, 250, 241, 0.18);
+      background: rgba(255, 250, 241, 0.08);
+      box-shadow: none;
+    }
+
+    .card h3 {
+      margin: 0 0 8px;
+      color: var(--ink);
+      font-size: 21px;
+      line-height: 1.25;
+    }
+
+    .dark .card h3 {
+      color: #fff;
+    }
+
+    .card p {
+      margin: 0;
+      color: var(--muted);
+      overflow-wrap: anywhere;
+    }
+
+    .dark .card p {
+      color: rgba(255, 250, 241, 0.76);
+    }
+
+    .card ul,
+    .plain-list {
+      margin: 12px 0 0 18px;
+      padding: 0;
+      color: var(--muted);
+    }
+
+    .dark .card ul,
+    .dark .plain-list {
+      color: rgba(255, 250, 241, 0.78);
+    }
+
+    .card li,
+    .plain-list li {
+      margin: 6px 0;
+    }
+
+    .automation-grid {
+      align-items: stretch;
+    }
+
+    .automation-card {
+      background: #fffdf8;
+      padding: 22px 22px 22px 24px;
+    }
+
+    .automation-card h3 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .automation-card h3::before {
+      content: "";
+      flex: 0 0 34px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #fff3df;
+      box-shadow: inset 0 0 0 1px rgba(217, 147, 35, 0.26);
+    }
+
+    .automation-card.ops h3::before {
+      background:
+        linear-gradient(135deg, rgba(36, 120, 93, 0.18), rgba(36, 120, 93, 0.04)),
+        #f4fff9;
+    }
+
+    .automation-card.creative h3::before {
+      background:
+        linear-gradient(135deg, rgba(217, 147, 35, 0.24), rgba(217, 147, 35, 0.04)),
+        #fff8eb;
+    }
+
+    .automation-card ul {
+      display: grid;
+      gap: 10px;
+      margin-left: 0;
+      list-style: none;
+    }
+
+    .automation-card li {
+      position: relative;
+      margin: 0;
+      padding: 12px 12px 12px 38px;
+      border: 1px solid rgba(34, 27, 22, 0.1);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 241, 0.72);
+    }
+
+    .automation-card li::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      top: 19px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--leaf);
+    }
+
+    .automation-card.creative li::before {
+      background: var(--curry);
+    }
+
+    .tag {
+      display: inline-block;
+      margin-bottom: 12px;
+      color: var(--curry-dark);
+      font-size: 13px;
+      font-weight: 900;
+    }
+
+    .dark .tag {
+      color: #ffd99a;
+    }
+
+    .compare {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .compare-panel {
+      min-width: 0;
+      min-height: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .compare-panel header {
+      padding: 18px 20px;
+      color: #fff;
+      background: var(--steel);
+    }
+
+    .compare-panel.api header {
+      background: var(--leaf);
+    }
+
+    .compare-panel h3 {
+      margin: 0;
+      font-size: 24px;
+      line-height: 1.2;
+    }
+
+    .compare-panel .body {
+      padding: 20px;
+    }
+
+    .compare-panel ul {
+      margin: 0 0 0 18px;
+      padding: 0;
+      color: var(--muted);
+    }
+
+    .compare-panel li {
+      margin: 10px 0;
+    }
+
+    .architecture {
+      display: grid;
+      grid-template-columns: minmax(0, 0.88fr) minmax(320px, 0.72fr);
+      gap: 26px;
+      align-items: center;
+    }
+
+    .arch-image {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 12px;
+      box-shadow: var(--shadow);
+    }
+
+    .arch-image img {
+      width: 100%;
+      aspect-ratio: 720 / 544;
+      object-fit: contain;
+    }
+
+    .stack-map {
+      display: grid;
+      gap: 12px;
+    }
+
+    .layer {
+      min-width: 0;
+      border: 1px solid rgba(34, 27, 22, 0.16);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 18px;
+    }
+
+    .layer strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 20px;
+    }
+
+    .layer span {
+      color: var(--muted);
+    }
+
+    .pipeline {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    .pipe-step {
+      min-width: 0;
+      min-height: 132px;
+      padding: 15px 12px;
+      border: 1px solid rgba(34, 27, 22, 0.16);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 241, 0.82));
+      box-shadow: 0 10px 28px rgba(43, 28, 13, 0.08);
+    }
+
+    .pipe-step b {
+      display: block;
+      color: var(--curry-dark);
+      font-size: 14px;
+    }
+
+    .pipe-step strong {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .pipe-step span {
+      display: block;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .problem-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 18px;
+    }
+
+    .problem {
+      border-left: 5px solid var(--tomato);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 16px 18px;
+      box-shadow: var(--shadow);
+    }
+
+    .problem strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .problem span {
+      color: var(--muted);
+    }
+
+    .prompt-block {
+      border: 1px solid rgba(255, 250, 241, 0.18);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 241, 0.09);
+      overflow: hidden;
+    }
+
+    .prompt-block header {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(255, 250, 241, 0.16);
+      color: #ffd99a;
+      font-weight: 900;
+    }
+
+    pre {
+      margin: 0;
+      padding: 18px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: rgba(255, 250, 241, 0.88);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 14px;
+      line-height: 1.72;
+    }
+
+    .showcase {
+      display: grid;
+      grid-template-columns: minmax(0, 0.78fr) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .image-pair {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .shot {
+      overflow: hidden;
+      border-radius: var(--radius);
+      background: #fff;
+      box-shadow: var(--shadow);
+    }
+
+    .shot img {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      object-fit: cover;
+    }
+
+    .shot figcaption {
+      padding: 10px 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .rules {
+      display: grid;
+      gap: 10px;
+    }
+
+    .ip-rules-card {
+      padding: 18px;
+    }
+
+    .rule {
+      display: grid;
+      grid-template-columns: minmax(90px, 118px) minmax(0, 1fr);
+      gap: 12px;
+      align-items: start;
+      border: 1px solid rgba(34, 27, 22, 0.1);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(180deg, rgba(255, 250, 241, 0.92), rgba(255, 246, 231, 0.72));
+      padding: 14px;
+    }
+
+    .rule:last-child {
+      border-bottom: 1px solid rgba(34, 27, 22, 0.1);
+      padding-bottom: 14px;
+    }
+
+    .rule b {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 32px;
+      border: 1px solid rgba(217, 147, 35, 0.28);
+      border-radius: 999px;
+      background: #fff3df;
+      color: var(--curry-dark);
+      font-size: 14px;
+      line-height: 1.2;
+      padding: 5px 10px;
+      text-align: center;
+    }
+
+    .rule span {
+      color: var(--muted);
+      line-height: 1.62;
+      overflow-wrap: anywhere;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+    }
+
+    th,
+    td {
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(34, 27, 22, 0.12);
+      color: var(--ink);
+      text-align: left;
+      vertical-align: top;
+      font-size: 15px;
+    }
+
+    td {
+      background: #fffdf8;
+    }
+
+    th {
+      color: #fffaf1;
+      background: #4c3828;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .script {
+      display: grid;
+      gap: 12px;
+    }
+
+    .script-line {
+      display: grid;
+      grid-template-columns: 130px minmax(0, 1fr);
+      gap: 18px;
+      padding: 16px 0;
+      border-bottom: 1px solid rgba(255, 250, 241, 0.16);
+    }
+
+    .script-line:last-child {
+      border-bottom: 0;
+    }
+
+    .script-line time {
+      color: #ffd99a;
+      font-weight: 900;
+    }
+
+    .script-line strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 18px;
+    }
+
+    .script-line span {
+      color: rgba(255, 250, 241, 0.76);
+    }
+
+    .codex-demo {
+      display: grid;
+      grid-template-columns: minmax(0, 0.9fr) minmax(0, 1fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .command-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .command {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: #fff;
+      padding: 16px;
+      box-shadow: var(--shadow);
+    }
+
+    .command b {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--leaf);
+    }
+
+    .command code {
+      display: block;
+      color: var(--steel);
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .sublimation {
+      background:
+        linear-gradient(180deg, #241b15 0%, #17120e 100%);
+    }
+
+    .sublimation .section-head {
+      grid-template-columns: minmax(0, 0.95fr) minmax(280px, 0.74fr);
+    }
+
+    .sublimation-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 0.74fr) minmax(0, 1fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sublimation-block,
+    .ai-level {
+      min-width: 0;
+      border: 1px solid rgba(255, 250, 241, 0.16);
+      border-radius: var(--radius);
+      background: rgba(255, 250, 241, 0.08);
+      padding: 20px;
+    }
+
+    .sublimation-block h3,
+    .ai-level h3 {
+      margin: 0 0 10px;
+      color: #fffaf1;
+      font-size: 22px;
+      line-height: 1.25;
+    }
+
+    .sublimation-block p,
+    .ai-level p {
+      margin: 0;
+      color: rgba(255, 250, 241, 0.76);
+      overflow-wrap: anywhere;
+    }
+
+    .sublimation-block p + p,
+    .ai-level p + p {
+      margin-top: 12px;
+    }
+
+    .ai-levels {
+      display: grid;
+      gap: 12px;
+    }
+
+    .ai-level {
+      display: grid;
+      grid-template-columns: 92px minmax(0, 1fr);
+      gap: 18px;
+    }
+
+    .level-index {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 70px;
+      height: 70px;
+      border: 1px solid rgba(255, 217, 154, 0.38);
+      border-radius: 50%;
+      color: #ffd99a;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .belief-note {
+      border-left: 4px solid #ffd99a;
+      padding-left: 14px;
+    }
+
+    .final-line {
+      margin-top: 18px;
+      border: 1px solid rgba(255, 217, 154, 0.38);
+      border-radius: var(--radius);
+      background: rgba(255, 217, 154, 0.12);
+      padding: 18px 20px;
+      color: #fffaf1;
+      font-size: 21px;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .footer {
+      padding: 34px 0 46px;
+      color: rgba(255, 250, 241, 0.72);
+      background: #231b15;
+      text-align: center;
+    }
+
+    @media (max-width: 980px) {
+      h1 {
+        font-size: 56px;
+      }
+
+      h2 {
+        font-size: 38px;
+      }
+
+      .hero-sub {
+        font-size: 20px;
+      }
+
+      .hero-points,
+      .grid.three,
+      .grid.four,
+      .pipeline {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .section-head,
+      .architecture,
+      .showcase,
+      .codex-demo,
+      .sublimation-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 12px 0;
+      }
+
+      .nav {
+        width: 100%;
+        gap: 14px;
+      }
+
+      .edit-controls {
+        width: 100%;
+        overflow-x: auto;
+      }
+
+      .hero {
+        min-height: 78vh;
+        background-position: center top;
+      }
+
+      .hero-inner {
+        padding: 92px 0 86px;
+      }
+
+      h1 {
+        font-size: 30px;
+        line-height: 1.12;
+      }
+
+      h2 {
+        font-size: 27px;
+        line-height: 1.18;
+        word-break: break-all;
+      }
+
+      .hero-sub {
+        font-size: 17px;
+      }
+
+      .mobile-only {
+        display: block;
+      }
+
+      .hero-sub,
+      .hero-point span,
+      .lead,
+      .card p,
+      .card li,
+      .plain-list li,
+      .problem span,
+      .layer span,
+      .pipe-step span,
+      .rule span,
+      .script-line span,
+      .command code {
+        word-break: break-all;
+      }
+
+      .hero-sub {
+        font-size: 17px;
+      }
+
+      .hero-points,
+      .grid.two,
+      .grid.three,
+      .grid.four,
+      .compare,
+      .pipeline,
+      .problem-list,
+      .image-pair {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .band {
+        padding: 52px 0;
+      }
+
+      .rule,
+      .script-line,
+      .ai-level {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 6px;
+      }
+
+      .level-index {
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="#top">AI 自动化产出课</a>
+      <nav class="nav" aria-label="页面导航">
+        <a href="#api">API</a>
+        <a href="#harness">Harness</a>
+        <a href="#pipeline">动画流水线</a>
+        <a href="#prompt">提示词</a>
+        <a href="#codex">Codex</a>
+        <a href="#sublimation">最终升华</a>
+      </nav>
+      <div class="edit-controls" data-edit-ui>
+        <button type="button" id="editToggle">编辑文本</button>
+        <button type="button" id="exportHtml">导出 HTML</button>
+        <button type="button" id="resetEdits">清除改动</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-inner">
+        <h1>从会聊天的 AI，<br class="mobile-only" />到能稳定产出的<br class="mobile-only" />AI 工厂</h1>
+        <p class="hero-sub">只讲三件事：为什么要接 API，为什么要有 Harness，怎样用 Codex 把提示词、分镜、图片、视频和质检串成一条可复用流水线。</p>
+        <div class="hero-points" data-remove-on-export>
+          <div class="hero-point">
+            <strong>餐饮同学听什么</strong>
+            <span>菜单图、活动海报、短视频、<br />点评回复，统一品牌味道。</span>
+          </div>
+          <div class="hero-point">
+            <strong>动画美术同学听什么</strong>
+            <span>角色设定、分镜、参考图、<br />视频镜头，减少漂移和返工。</span>
+          </div>
+          <div class="hero-point">
+            <strong>最后带走什么</strong>
+            <span>IP Harness 模板、<br />羊毛毡提示词、Codex 实操。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="api">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">01 API 的本质</p>
+            <h2>不接 API 是手工对话，接 API 是把 AI 接进生产线</h2>
+          </div>
+          <p class="lead">很多人以为 API 只是“程序员版 ChatGPT”。其实更准确的说法是：API 让 AI 从一个聊天窗口，变成你系统里的一个可调度能力。</p>
+        </div>
+
+        <div class="compare">
+          <article class="compare-panel">
+            <header>
+              <h3>不接 API：适合探索</h3>
+            </header>
+            <div class="body">
+              <ul>
+                <li>打开豆包、Kimi、ChatGPT，手动输入需求。</li>
+                <li>每次提示词靠人复制，版本靠人记忆。</li>
+                <li>适合头脑风暴、一次性文案、临时问答。</li>
+                <li>问题是不可批量、不可追踪、不可稳定复现。</li>
+              </ul>
+            </div>
+          </article>
+
+          <article class="compare-panel api">
+            <header>
+              <h3>接 API：适合生产</h3>
+            </header>
+            <div class="body">
+              <ul>
+                <li>把模型能力接入脚本、后台、工作流或自动化工具。</li>
+                <li>同一套规则可以批量跑 100 张图、100 条文案、100 个分镜。</li>
+                <li>输入、输出、成本、失败原因都能记录。</li>
+                <li>可以接质检、接知识库、接素材库、接人工确认。</li>
+              </ul>
+            </div>
+          </article>
+        </div>
+
+        <div class="grid three" style="margin-top: 18px;">
+          <article class="card">
+            <span class="tag">一句话</span>
+            <h3>聊天窗口是个人效率工具</h3>
+            <p>适合一个人临时做一件事，快，但结果靠手感。</p>
+          </article>
+          <article class="card">
+            <span class="tag">一句话</span>
+            <h3>API 是组织生产能力</h3>
+            <p>适合把同一套方法重复执行，批量、可记录、可复盘。</p>
+          </article>
+          <article class="card">
+            <span class="tag">一句话</span>
+            <h3>Harness 是质量管理系统</h3>
+            <p>适合把品牌、角色、合规、素材、审批都管住。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band alt" id="harness">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">02 三层架构</p>
+            <h2>模型负责生成，管线负责执行，统一管控层负责不跑偏</h2>
+          </div>
+          <p class="lead">你给的图已经把核心讲清楚了：底部是模型，上面是统一管控层，再上面才是脚本、分镜、图片、视频这些产出模块。</p>
+        </div>
+
+        <div class="architecture">
+          <figure class="arch-image">
+            <img src="assets/harness-architecture.png" alt="AI 动画生产的任务调度层、管线模块、统一管控层和模型层架构图" />
+          </figure>
+          <div class="stack-map">
+            <div class="layer">
+              <strong>任务调度层</strong>
+              <span>接收需求，拆解任务，分配给脚本、分镜、图片、视频等模块。</span>
+            </div>
+            <div class="layer">
+              <strong>管线模块</strong>
+              <span>脚本生成、分镜设计、图片生成、视频剪辑，每个模块只做自己擅长的事。</span>
+            </div>
+            <div class="layer">
+              <strong>统一管控层</strong>
+              <span>IP 规范、合规校验、质量审核、知识库和素材沉淀，是 Harness 的核心。</span>
+            </div>
+            <div class="layer">
+              <strong>模型层</strong>
+              <span>豆包 4.0 可以做主力，DeepSeek 可以做批量文本任务。模型可以替换，规则要沉淀在 Harness。</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="problem-list">
+          <div class="problem">
+            <strong>没有统一管控层，角色会漂</strong>
+            <span>第一张是毛绒三花猫，第三张可能变成动漫猫、真猫、塑料玩具或另一只吉祥物。</span>
+          </div>
+          <div class="problem">
+            <strong>没有统一管控层，风格会漂</strong>
+            <span>同一支片子里，有的像羊毛毡，有的像 3D，有的像实拍，剪在一起马上穿帮。</span>
+          </div>
+          <div class="problem">
+            <strong>没有统一管控层，品牌会乱</strong>
+            <span>围裙 Logo、中文标识、活动口径、门店信息都可能被模型瞎编。</span>
+          </div>
+          <div class="problem">
+            <strong>没有统一管控层，经验沉淀不下来</strong>
+            <span>今天靠人调出来的好效果，明天换人、换模型、换提示词，又从头试错。</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="pipeline">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">03 自动化产出</p>
+            <h2>动画短片不要让一个提示词硬扛，拆成可检查的流水线</h2>
+          </div>
+          <p class="lead">复杂动画最容易失败的地方，是把脚本、分镜、角色、场景、运镜、文字、剪辑全塞进一个提示词。正确做法是拆开，每一步都留下可检查结果。</p>
+        </div>
+
+        <div class="pipeline" aria-label="动画短片自动化流水线">
+          <div class="pipe-step">
+            <b>Step 1</b>
+            <strong>需求卡</strong>
+            <span>目标、受众、平台、时长、比例、禁区。</span>
+          </div>
+          <div class="pipe-step">
+            <b>Step 2</b>
+            <strong>脚本</strong>
+            <span>一句话卖点，三段情绪，结尾行动。</span>
+          </div>
+          <div class="pipe-step">
+            <b>Step 3</b>
+            <strong>分镜</strong>
+            <span>每镜头时间、画面、动作、镜头运动。</span>
+          </div>
+          <div class="pipe-step">
+            <b>Step 4</b>
+            <strong>关键帧</strong>
+            <span>先出图，锁角色、材质、食物和场景。</span>
+          </div>
+          <div class="pipe-step">
+            <b>Step 5</b>
+            <strong>视频化</strong>
+            <span>用图生视频，动作小，镜头稳。</span>
+          </div>
+          <div class="pipe-step">
+            <b>Step 6</b>
+            <strong>后期</strong>
+            <span>Logo、字幕、门店数、活动文案后期加。</span>
+          </div>
+          <div class="pipe-step">
+            <b>Step 7</b>
+            <strong>质检入库</strong>
+            <span>通过样例沉淀，失败原因写回 Harness。</span>
+          </div>
+        </div>
+
+        <div class="grid two automation-grid" style="margin-top: 18px;">
+          <article class="card automation-card ops" data-refresh-content="restaurant-automation">
+            <h3>餐饮店可以自动化什么</h3>
+            <ul>
+              <li>经营日报：每天销售额、客流量、翻台率、滞留时长、公众号数据和大众点评差评投诉，自动汇总成日报并给出异常分析。</li>
+              <li>外部内容运营：大众点评差评投诉自动识别、生成回复建议并按品牌口径处理；公众号选题、文案、配图建议、排版和发布计划可以自动撰写。</li>
+              <li>员工与协作日报：接入飞书，自动整理员工每日产出、沟通响应、任务推进、问题阻塞和需要店长跟进的事项。</li>
+              <li>门店服务监控：接入监控逐帧分析迎客、服务表情、是否面带微笑、顾客等待时长、顾客吃咖喱时的表情和停留行为。</li>
+              <li>厨房与排班监控：分析厨房卫生、出餐是否执行 SOP、是否有人未按标准操作、人力是否饱和、是否需要两班，以及下午空闲时段员工状态。</li>
+            </ul>
+          </article>
+          <article class="card automation-card creative" data-refresh-content="creative-automation">
+            <h3>动画美术可以自动化什么</h3>
+            <ul>
+              <li>角色与 IP 规范：角色圣经、不可变识别点、动作边界、材质边界、服装道具和负面方向统一管理。</li>
+              <li>动画前期：脚本拆解、分镜草案、镜头表、关键帧提示词、参考图包和风格板批量生成，再由美术挑选修正。</li>
+              <li>视频生成管线：关键帧、图生视频、镜头运动、字幕留白、后期文字、音乐节奏和多版本短视频组合。</li>
+              <li>自动审稿与美术质检：检查角色漂移、羊毛毡质感不稳定、食物不诱人、文字错误、镜头不可剪、前后镜头风格不一致。</li>
+              <li>视频平台运营：按抖音、小红书、视频号、B 站等平台要求，自动适配标题、封面、字幕、比例、标签和发布时间，并在发布前做平台规则质检。</li>
+            </ul>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band dark" id="prompt">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">04 羊毛毡质感稳定</p>
+            <h2>提示词不是越长越好，而是每个镜头都要锁同一套身份和材质</h2>
+          </div>
+          <p class="lead">质感不稳定通常不是模型“不听话”，而是你没有把“角色身份、材质、镜头、负面方向、后期文字”拆清楚。</p>
+        </div>
+
+        <div class="grid three">
+          <article class="card">
+            <h3>先锁参考图</h3>
+            <p>最终画面不要只靠文字生成。上传全身参考、脸部材质参考、成功样张，让模型跟图，不要让模型重新设计。</p>
+          </article>
+          <article class="card">
+            <h3>每个镜头重复身份锁</h3>
+            <p>不要只在第一镜写“毛绒三花猫”。每一镜都写清同一个角色、同一材质、同一服装、同一表情边界。</p>
+          </article>
+          <article class="card">
+            <h3>把文字交给后期</h3>
+            <p>AI 生成图像时尽量不要承担复杂中文。围裙 Logo 可留干净区域，最终用可控工具叠字。</p>
+          </article>
+        </div>
+
+        <div class="prompt-block" style="margin-top: 22px;">
+          <header>
+            <span>羊毛毡 IP 关键帧提示词模板</span>
+            <span>可直接改品牌名和角色设定</span>
+          </header>
+          <pre>基于上传参考图中的同一个角色，生成一张 9:16 竖屏关键帧。
+角色必须保持：三花毛绒猫厨师，圆形白色大脸，头顶左侧黄色毛毡 patch，右侧棕色毛毡 patch，小黑豆眼，棕色小鼻子，简单微笑，粉色方形腮红，白色软厨师帽，棕色布料围裙，短绒毛、羊毛毡、手工缝线质感。
+
+画面风格：暖黄微缩厨房，木质台面，浅景深，柔和商业广告灯光，干净、温暖、有食欲。
+镜头内容：角色轻轻搅拌一锅咖喱，前景有干净诱人的咖喱饭，咖喱浓稠亮泽，米饭颗粒饱满，炸物酥脆，酱汁边缘干净。
+
+不要生成除围裙品牌区以外的其它文字。围裙 Logo 如果无法准确生成，保留干净空白区域，后期叠加。
+负向：不要真实猫，不要真人，不要其他动物，不要动漫大眼，不要塑料 3D，不要陶瓷质感，不要脏厨房，不要暗黑风，不要咖喱变成一坨不明物，不要乱码文字，不要多余肢体，不要夸张动作。</pre>
+        </div>
+
+        <div class="table-wrap" style="margin-top: 22px;">
+          <table>
+            <thead>
+              <tr>
+                <th>常见失败</th>
+                <th>原因</th>
+                <th>修法</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>羊毛毡变塑料 3D</td>
+                <td>提示词只写“可爱吉祥物”，没有材质锁。</td>
+                <td>每镜写“短绒毛、羊毛毡、手工缝线、柔软布料”，负向写“不要塑料、陶瓷、金属、低质 3D”。</td>
+              </tr>
+              <tr>
+                <td>角色越生成越不像</td>
+                <td>模型把每张图当新角色设计。</td>
+                <td>用同一套参考图，提示词写“同一个角色，不重新设计，不改变物种、脸型、头顶色块和服装”。</td>
+              </tr>
+              <tr>
+                <td>咖喱没有食欲</td>
+                <td>只写“咖喱”，没写商业食物标准。</td>
+                <td>写“浓稠亮泽、边缘干净、米饭颗粒饱满、炸物酥脆、食材结构清楚”，拒绝泥状、剩菜、灰暗。</td>
+              </tr>
+              <tr>
+                <td>中文 Logo 乱码</td>
+                <td>图像模型不擅长稳定生成复杂文字。</td>
+                <td>不要让模型生成复杂文案。正式 Logo、门店数、活动信息在后期或设计工具里叠加。</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="band alt" id="ip">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">05 伽喱博士 IP Harness 样例</p>
+            <h2>把“看着像”改成“必须满足这些检查项”</h2>
+          </div>
+          <p class="lead">对 IP 来说，Harness 不是提示词库，而是一份可执行的品牌质检标准。通过就进入下一步，不通过就重生成或人工修。</p>
+        </div>
+
+        <div class="showcase">
+          <div class="image-pair">
+            <figure class="shot">
+              <img src="assets/dr-curry-ingredients.png" alt="伽喱博士毛绒三花猫厨师和食材关键帧" />
+              <figcaption>角色和食材关键帧：适合验证角色脸型、材质、厨房光线。</figcaption>
+            </figure>
+            <figure class="shot">
+              <img src="assets/dr-curry-curry.png" alt="伽喱博士毛绒三花猫厨师搅拌咖喱关键帧" />
+              <figcaption>咖喱饭关键帧：适合验证食物食欲、围裙留白、镜头稳定。</figcaption>
+            </figure>
+          </div>
+
+          <div class="card ip-rules-card" data-refresh-content="ip-rules">
+            <div class="rules">
+              <div class="rule">
+                <b>角色锁</b>
+                <span>圆脸白色毛绒三花猫，黄色和棕色头顶色块，小黑豆眼，粉色腮红，白厨师帽，棕色围裙。</span>
+              </div>
+              <div class="rule">
+                <b>Logo 锁</b>
+                <span>围裙胸前必须是“伽喱博士 Dr.CURRY”。如果模型写不准，就留空后期加，不接受乱码。</span>
+              </div>
+              <div class="rule">
+                <b>食欲门禁</b>
+                <span>咖喱要浓稠亮泽，米饭颗粒饱满，炸物酥脆，绝不接受泥状、脏污、剩菜感。</span>
+              </div>
+              <div class="rule">
+                <b>动作边界</b>
+                <span>轻轻搅拌、端盘、挥手、眨眼。不要大幅奔跑、跳跃、夸张表演。</span>
+              </div>
+              <div class="rule">
+                <b>产出策略</b>
+                <span>先跑 8 秒小样，稳定后再做 20 秒。长片漂移就拆成 5 个镜头分别生成，再进行合成或者人工转场后期。</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band" id="codex">
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">06 Codex 怎么用</p>
+            <h2>Codex 不是聊天框，是会读工作区、改文件、跑验证的执行型助手</h2>
+          </div>
+          <p class="lead">给 Codex 的正确方式不是“帮我想一个提示词”，而是把规范、素材、失败样例放进工作区，让它按文件里的 Harness 产出、检查和迭代。</p>
+        </div>
+
+        <div class="codex-demo">
+          <div class="grid two">
+            <article class="card">
+              <span class="tag">准备工作区</span>
+              <h3>把规则写成文件</h3>
+              <p>例如 `harness.md`、`ip-character-bible.md`、`visual-style-board.md`、`negative-directions.md`。这些比散落在聊天记录里的经验可靠。</p>
+            </article>
+            <article class="card">
+              <span class="tag">让 Codex 执行</span>
+              <h3>把任务说成动作</h3>
+              <p>让它读取规范、生成分镜、写提示词、整理 QA 表、更新失败原因，而不是只要一段灵感。</p>
+            </article>
+            <article class="card">
+              <span class="tag">用文件沉淀</span>
+              <h3>成功和失败都入库</h3>
+              <p>好图沉淀成参考图，坏图沉淀成负面方向，下次自动复用。</p>
+            </article>
+            <article class="card">
+              <span class="tag">保留人工门禁</span>
+              <h3>关键节点人确认</h3>
+              <p>角色定稿、活动口径、Logo、门店数、合规承诺都应该人工确认，不让模型自己定。</p>
+            </article>
+          </div>
+
+          <div class="command-list">
+            <div class="command">
+              <b>生成 5 镜头分镜</b>
+              <code>读取 carry-doctor-ip-video/references 下的 Harness 和角色规范。为“伽喱博士 7 周年短片”生成 15 秒 5 镜头分镜，每镜头给画面、动作、运镜、后期文字和拒绝标准。</code>
+            </div>
+            <div class="command">
+              <b>修提示词稳定羊毛毡质感</b>
+              <code>这组图里第 3 张变成塑料 3D，第 4 张咖喱像泥。请根据 negative-directions.md 改写每镜头提示词，并给一份重生成策略。</code>
+            </div>
+            <div class="command">
+              <b>做图像质检</b>
+              <code>检查 assets 里的关键帧是否符合 harness.md。按角色一致性、食物食欲、文字安全、画面可剪辑性打分，指出必须重做的镜头。</code>
+            </div>
+            <div class="command">
+              <b>把经验写回 Harness</b>
+              <code>把这次成功样例和失败样例总结成 6 条可复用规则，补充到 visual-style-board.md 和 negative-directions.md，不改动无关内容。</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band dark section-hidden" id="agenda" data-remove-on-export>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">07 周日讲课节奏</p>
+            <h2>45 分钟版本：先讲痛点，再讲架构，最后现场演示</h2>
+          </div>
+          <p class="lead">听众不是来听概念名词的。建议每 8 到 10 分钟就回到一个具体例子：菜单图、短视频、角色漂移、Codex 实操。</p>
+        </div>
+
+        <div class="script">
+          <div class="script-line">
+            <time>0 到 5 分钟</time>
+            <div>
+              <strong>开场：为什么大家用 AI 还是不稳定</strong>
+              <span>展示两张咖喱博士图，说明“好看一次”和“稳定产出一百次”是两回事。</span>
+            </div>
+          </div>
+          <div class="script-line">
+            <time>5 到 13 分钟</time>
+            <div>
+              <strong>API 和不接 API 的区别</strong>
+              <span>用餐饮活动图批量生成举例：聊天窗口是手工试菜，API 是接进厨房生产线。</span>
+            </div>
+          </div>
+          <div class="script-line">
+            <time>13 到 23 分钟</time>
+            <div>
+              <strong>Harness 和统一管控层</strong>
+              <span>讲 IP 规范、合规、质量审核、素材库。强调模型可以换，Harness 是自己的资产。</span>
+            </div>
+          </div>
+          <div class="script-line">
+            <time>23 到 33 分钟</time>
+            <div>
+              <strong>动画自动化产出链路</strong>
+              <span>从需求卡到脚本、分镜、关键帧、视频、后期、质检，拆成 7 步，每步有输入输出。</span>
+            </div>
+          </div>
+          <div class="script-line">
+            <time>33 到 40 分钟</time>
+            <div>
+              <strong>羊毛毡质感和提示词实战</strong>
+              <span>讲参考图优先、身份锁、材质锁、负向提示、文字后期叠加，现场改一段提示词。</span>
+            </div>
+          </div>
+          <div class="script-line">
+            <time>40 到 45 分钟</time>
+            <div>
+              <strong>Codex 实操和结尾</strong>
+              <span>展示如何让 Codex 读取 Harness、生成分镜、检查关键帧、把失败原因写回规范。</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="band alt section-hidden" data-remove-on-export>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <p class="section-kicker">08 可以直接带走的结论</p>
+            <h2>真正值钱的不是某个模型，而是你能否把经验变成规则</h2>
+          </div>
+          <p class="lead">这套讲法最后要落在一个清楚结论上：AI 的能力会越来越便宜，能把 AI 接进业务并管住的人会越来越值钱。</p>
+        </div>
+
+        <div class="grid three">
+          <article class="card">
+            <h3>为什么要用 API</h3>
+            <p>为了批量、自动、可记录、可复现，把 AI 从聊天工具变成生产系统的一部分。</p>
+          </article>
+          <article class="card">
+            <h3>为什么要用 Harness</h3>
+            <p>为了统一 IP、风格、合规、质量和知识沉淀，让 AI 产出可控，而不是靠运气。</p>
+          </article>
+          <article class="card">
+            <h3>为什么要用 Codex</h3>
+            <p>为了让 AI 不只回答问题，而是能在你的文件、规范和素材里持续执行、验证和迭代。</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="band dark sublimation" id="sublimation" data-edit-ui>
+      <div class="wrap">
+        <div class="section-head">
+          <div>
+            <h2>AI 不是神谕，而是预测系统</h2>
+          </div>
+          <p class="lead">今天分享的核心内容，其实不仅仅是 Harness 的概念，也不仅仅是 AI 工具的用法，而是 AI 在这个时代真正能带来的能力升级。</p>
+        </div>
+
+        <div class="sublimation-layout">
+          <article class="sublimation-block">
+            <h3>人生是一个不确定系统</h3>
+            <p>人生不是“努力 A，就一定得到 B”的线性结算。真正影响结果的，是机会窗口、行业变化、合作网络、信息差、路径依赖、偶然事件，以及我们自己在压力下的判断质量。</p>
+            <p>所以高级能力不是追求一个确定答案，而是不断下注、观察反馈、修正模型。</p>
+            <p class="belief-note">人为什么会迷信、信风水？不是因为人缺乏理性，而是因为人在不确定中太需要确定性。人会本能地找模式、找因果、找控制感。</p>
+            <p>而且真实世界不像实验室，变量太多、反馈太慢、因果链太长。真正能被清楚证伪或证明的经验，其实很少。正因为很多事情既不能马上证明，也不能马上推翻，迷信才容易在这个缝隙里生长出来。</p>
+            <p>风水里有一部分其实是环境经验，比如采光、通风、动线、噪音、心理舒适度；但如果它变成完全不可验证的命运解释，就从经验变成了迷信。</p>
+          </article>
+
+          <div class="ai-levels">
+            <article class="ai-level">
+              <div class="level-index">1</div>
+              <div>
+                <h3>第一层：把 AI 当聊天框</h3>
+                <p>遇到问题就问它一句，得到一个答案，然后把这个答案当真理。这种用法看起来很先进，但本质上很容易变成新时代迷信。</p>
+                <p>如果我们只是问 AI 一个答案，然后不看证据、不看置信度、不做验证，就等于把过去求签、问大师、看风水，换成了问 AI。</p>
+              </div>
+            </article>
+
+            <article class="ai-level">
+              <div class="level-index">2</div>
+              <div>
+                <h3>第二层：把 AI 当生产力工具</h3>
+                <p>让它写文案、做图、剪视频、生成菜单、回复点评、整理日报、写代码、做自动化。这一层已经很有价值，因为它真的能提高效率，降低成本，让一个人完成过去几个人的工作量。</p>
+              </div>
+            </article>
+
+            <article class="ai-level">
+              <div class="level-index">3</div>
+              <div>
+                <h3>第三层：把 AI 当持续进化的预测系统</h3>
+                <p>不是只让它给答案，而是让它列证据、标置信度、记录反馈、持续更新。Codex 负责执行，Harness 负责规则和质检，角色蒸馏负责理解身边的人和自己。数据越多，反馈越密，预测越准。</p>
+                <p>这一层的 AI，不只是帮你“做事更快”，而是帮你“判断更准”。它先改变你自己：让你更理解自己的决策模式、情绪模式、拖延模式、合作模式。然后再改变你的小世界：你的店、你的团队、你的 IP、你的客户关系、你的工作流。</p>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <div class="final-line">AI 当然不能替我们换来一个确定的命运。它真正能做的，是在充满变化和偶然的世界里，帮我们多看见一点线索，多校准一次判断，多完成一次行动，也多建立一段更可靠的合作。最后，AI 不是把人替掉，而是把人往前推一点：先让我们更理解自己，再让我们有能力慢慢改变自己身边的小世界。</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    AI 自动化产出课 · API / Harness / Codex · 2026
+  </footer>
+  <script>
+    (() => {
+      const storageKey = "ai-course-inline-edits:v1:" + location.pathname;
+      const editableSelector = [
+        "main h1",
+        "main h2",
+        "main h3",
+        "main p",
+        "main li",
+        "main span",
+        "main strong",
+        "main b",
+        "main td",
+        "main th",
+        "main time",
+        "main pre",
+        "main code",
+        "footer"
+      ].join(",");
+
+      const editToggle = document.getElementById("editToggle");
+      const exportHtml = document.getElementById("exportHtml");
+      const resetEdits = document.getElementById("resetEdits");
+
+      const targets = (root = document) =>
+        Array.from(root.querySelectorAll(editableSelector)).filter((el) => !el.closest("[data-edit-ui]"));
+
+      const save = () => {
+        const data = targets().map((el) => el.innerHTML);
+        localStorage.setItem(storageKey, JSON.stringify(data));
+      };
+
+      const load = () => {
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        try {
+          const data = JSON.parse(raw);
+          targets().forEach((el, index) => {
+            if (el.closest("[data-refresh-content]")) return;
+            if (typeof data[index] === "string") el.innerHTML = data[index];
+          });
+        } catch {
+          localStorage.removeItem(storageKey);
+        }
+      };
+
+      const setEditing = (enabled) => {
+        document.body.classList.toggle("editing", enabled);
+        targets().forEach((el) => {
+          el.contentEditable = enabled ? "true" : "false";
+          if (enabled) el.setAttribute("spellcheck", "false");
+          else el.removeAttribute("spellcheck");
+        });
+        editToggle.textContent = enabled ? "完成编辑" : "编辑文本";
+      };
+
+      let timer = 0;
+      document.addEventListener("input", (event) => {
+        if (!event.target.closest("[contenteditable='true']")) return;
+        clearTimeout(timer);
+        timer = window.setTimeout(save, 180);
+      });
+
+      editToggle.addEventListener("click", () => {
+        setEditing(!document.body.classList.contains("editing"));
+      });
+
+      resetEdits.addEventListener("click", () => {
+        if (!confirm("清除浏览器里保存的页面文字改动，并刷新页面？")) return;
+        localStorage.removeItem(storageKey);
+        location.reload();
+      });
+
+      exportHtml.addEventListener("click", () => {
+        save();
+        const clone = document.documentElement.cloneNode(true);
+        clone.querySelectorAll("[contenteditable]").forEach((el) => {
+          el.removeAttribute("contenteditable");
+          el.removeAttribute("spellcheck");
+        });
+        clone.querySelectorAll("[data-remove-on-export]").forEach((el) => el.remove());
+        clone.querySelector("body")?.classList.remove("editing");
+        const html = "<!DOCTYPE html>\n" + clone.outerHTML;
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = "index-edited.html";
+        link.click();
+        URL.revokeObjectURL(link.href);
+      });
+
+      load();
+      save();
+      setEditing(false);
+    })();
+  </script>
+</body>
+</html>
